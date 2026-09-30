@@ -1,0 +1,109 @@
+/* --- Reset và cấu trúc chung --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #333;
+}
+
+/* --- Khung chứa nội dung (Card) --- */
+.container, body > h1 {
+    /* Đưa form vào giữa dạng khung nổi hiện đại */
+}
+
+body {
+    flex-direction: column;
+}
+
+h1 {
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 26px;
+    text-align: center;
+}
+
+p {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* --- Thiết kế Form và Khung Thanks --- */
+form, .thanks-box {
+    background: #ffffff;
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 380px;
+    box-sizing: border-box;
+}
+
+/* --- Các hàng nhập liệu trong Form --- */
+.form-row {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-row label {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+    font-size: 13px;
+}
+
+.form-row input {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-row input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+    outline: none;
+}
+
+/* --- Nút bấm (Button / Submit) --- */
+.btn-container, .btn-row {
+    margin-top: 20px;
+    text-align: center;
+}
+
+input[type="submit"], .btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    width: 100%;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+input[type="submit"]:hover, .btn:hover {
+    background-color: #2980b9;
+}
+
+/* --- Thông báo lỗi --- */
+.message {
+    color: #e74c3c;
+    font-size: 13px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 500;
+}

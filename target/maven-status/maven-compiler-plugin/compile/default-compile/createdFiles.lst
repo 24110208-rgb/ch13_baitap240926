@@ -1,0 +1,7 @@
+controller\Servlet.class
+util\MailUtil$1.class
+com\mycompany\ch13_baitap240926\JakartaRestConfiguration.class
+com\mycompany\ch13_baitap240926\resources\JakartaEE10Resource.class
+data\UserDAO.class
+model\User.class
+util\MailUtil.class
