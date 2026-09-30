@@ -1,52 +1,88 @@
 package util;
 
-import java.util.Properties;
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 
+/**
+ * Gửi email qua Resend API (HTTPS) - https://resend.com
+ * Không dùng SMTP → tránh bị block trên các host free (Render, Railway...).
+ *
+ * Biến môi trường cần set trên Render:
+ *   RESEND_API_KEY — API key lấy từ resend.com → API Keys
+ *   RESEND_FROM    — địa chỉ gửi, dùng "onboarding@resend.dev" nếu chưa có domain riêng
+ *                    (chỉ gửi được đến email đã đăng ký tài khoản Resend)
+ */
 public class MailUtil {
 
-    public static void sendMail(String to, String from, String subject, String body, boolean bodyIsHTML) 
-            throws MessagingException {
-        
-        // 1. Cấu hình các thuộc tính kết nối SMTP (Ví dụ dùng Gmail)
-        Properties props = new Properties();
-        props.put("mail.transport.protocol", "smtp");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        // Thêm timeout để tránh treo request khi host block SMTP (đơn vị: ms)
-        props.put("mail.smtp.connectiontimeout", "5000");
-        props.put("mail.smtp.timeout", "5000");
-        props.put("mail.smtp.writetimeout", "5000");
+    private static final String RESEND_API_URL = "https://api.resend.com/emails";
 
-        // 2. Tạo Authenticator để xác thực tài khoản gửi
-        Authenticator auth = new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                // Thay thế bằng Email thực tế
-                return new PasswordAuthentication("legiahanst2006@gmail.com", "xzza jayg dshp goht");
-            }
-        };
+    public static void sendMail(String to, String from, String subject, String body, boolean bodyIsHTML)
+            throws IOException, InterruptedException {
 
-        // 3. Khởi tạo phiên làm việc Session
-        Session session = Session.getInstance(props, auth);
-        // session.setDebug(true); // Tắt debug trên production
+        // Đọc config từ biến môi trường
+        String apiKey   = System.getenv("RESEND_API_KEY");
+        String fromAddr = System.getenv("RESEND_FROM");
 
-        // 4. Tạo đối tượng MimeMessage chứa nội dung email
-        Message message = new MimeMessage(session);
-        message.setFrom(new InternetAddress(from));
-        message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
-        message.setSubject(subject);
-        
-        if (bodyIsHTML) {
-            message.setContent(body, "text/html; charset=utf-8");
-        } else {
-            message.setText(body);
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Biến môi trường RESEND_API_KEY chưa được set.");
+        }
+        // Nếu chưa set RESEND_FROM, dùng địa chỉ test mặc định của Resend
+        if (fromAddr == null || fromAddr.isBlank()) {
+            fromAddr = "onboarding@resend.dev";
         }
 
-        // 5. Gửi email thông qua Transport
-        Transport.send(message);
+        // Escape ký tự đặc biệt để nhúng vào JSON an toàn
+        String safeSubject = escapeJson(subject);
+        String safeBody    = escapeJson(body);
+        String safeTo      = escapeJson(to);
+        String safeFrom    = escapeJson(fromAddr);
+
+        // Xây dựng JSON body theo Resend API
+        String contentKey = bodyIsHTML ? "html" : "text";
+        String jsonBody = "{"
+                + "\"from\":\"" + safeFrom + "\","
+                + "\"to\":[\"" + safeTo + "\"],"
+                + "\"subject\":\"" + safeSubject + "\","
+                + "\"" + contentKey + "\":\"" + safeBody + "\""
+                + "}";
+
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(RESEND_API_URL))
+                .timeout(Duration.ofSeconds(15))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + apiKey)
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        int statusCode = response.statusCode();
+        // Resend trả 200 hoặc 201 khi thành công
+        if (statusCode != 200 && statusCode != 201) {
+            throw new IOException("Resend API trả lỗi " + statusCode + ": " + response.body());
+        }
+
+        System.out.println("[MailUtil] Email gửi thành công đến " + to + " (HTTP " + statusCode + ")");
+    }
+
+    /**
+     * Escape các ký tự đặc biệt trong chuỗi để nhúng vào JSON an toàn.
+     */
+    private static String escapeJson(String input) {
+        if (input == null) return "";
+        return input
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

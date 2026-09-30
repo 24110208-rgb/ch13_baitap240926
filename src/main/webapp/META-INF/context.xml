@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context path="/ch13_baitap240926">
-    <Resource name="jdbc/murach"
-              auth="Container"
-              type="javax.sql.DataSource"
-              driverClassName="com.mysql.cj.jdbc.Driver"
-              url="jdbc:mysql://localhost:3306/murach"
-              username="root"
-              password="123456"
-              maxTotal="20"
-              maxIdle="10"
-              maxWaitMillis="-1"/>
+<Context path="/">
+    <!-- DataSource được quản lý trực tiếp bởi JPA/EclipseLink qua biến môi trường -->
+    <!-- Không cần khai báo JNDI DataSource ở đây -->
 </Context>

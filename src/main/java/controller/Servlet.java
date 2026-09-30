@@ -34,9 +34,10 @@ public class Servlet extends HttpServlet {
             message = "";
             UserDAO.insert(user);
 
-            //CHƯƠNG 14: GỬI EMAIL CHÀO MỪNG ---
+            //CHƯƠNG 14: GỬI EMAIL CHÀO MỪNG QUA BREVO API ---
             String to = email;
-            String from = "your_email@gmail.com";
+            // from sẽ bị override bởi BREVO_FROM_EMAIL env var trong MailUtil
+            String from = "";
             String subject = "Welcome to our email list!";
             String body = "Dear " + firstName + ",\n\n"
                     + "Thanks for joining our email list. We'll keep you updated!\n\n"
@@ -45,10 +46,12 @@ public class Servlet extends HttpServlet {
 
             try {
                 util.MailUtil.sendMail(to, from, subject, body, bodyIsHTML);
-            } catch (Exception e) {
-                // Gửi mail lỗi (thường do host block SMTP) → vẫn chuyển thanks.jsp
-                // nhưng ghi log để debug, KHÔNG để exception propagate lên server
+            } catch (IOException | InterruptedException e) {
+                // Gửi mail lỗi → vẫn chuyển thanks.jsp, ghi log để debug
                 System.err.println("[MailUtil] Failed to send mail to " + to + ": " + e.getMessage());
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt(); // restore interrupted status
+                }
             }
 
             url = "/thanks.jsp";

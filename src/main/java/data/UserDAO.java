@@ -7,59 +7,73 @@ import jakarta.persistence.Persistence;
 import jakarta.persistence.TypedQuery;
 import model.User;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class UserDAO {
 
-    // Khởi tạo bộ quản lý Factory nạp từ cấu hình xml [1]=
-    private static final EntityManagerFactory emf = 
-            Persistence.createEntityManagerFactory("murachPU");
+    // Khởi tạo EMF một lần duy nhất, đọc DB config từ biến môi trường
+    private static final EntityManagerFactory emf = createEMF();
 
-    // 1. Kỹ thuật THÊM MỚI dữ liệu bằng hàm persist có sẵn [1]
+    private static EntityManagerFactory createEMF() {
+        // Đọc biến môi trường, fallback về giá trị local nếu không có
+        String dbUrl  = getEnv("DB_URL",      "jdbc:mysql://localhost:3306/murach");
+        String dbUser = getEnv("DB_USER",     "root");
+        String dbPass = getEnv("DB_PASSWORD", "123456");
+
+        Map<String, String> props = new HashMap<>();
+        props.put("jakarta.persistence.jdbc.url",      dbUrl);
+        props.put("jakarta.persistence.jdbc.user",     dbUser);
+        props.put("jakarta.persistence.jdbc.password", dbPass);
+        props.put("jakarta.persistence.jdbc.driver",   "com.mysql.cj.jdbc.Driver");
+
+        return Persistence.createEntityManagerFactory("murachPU", props);
+    }
+
+    private static String getEnv(String key, String fallback) {
+        String val = System.getenv(key);
+        return (val != null && !val.isBlank()) ? val : fallback;
+    }
+
+    // 1. Thêm mới User
     public static int insert(User user) {
         EntityManager em = emf.createEntityManager();
         EntityTransaction trans = em.getTransaction();
-        
         try {
-            trans.begin(); // Mở giao dịch [1]
-            em.persist(user); // Lưu thẳng Object xuống Database không cần viết câu lệnh SQL [1]
-            trans.commit(); // Lưu thay đổi [1]
+            trans.begin();
+            em.persist(user);
+            trans.commit();
             return 1;
         } catch (Exception e) {
-            if (trans.isActive()) {
-                trans.rollback(); // Hoàn tác nếu lỗi [1]
-            }
+            if (trans.isActive()) trans.rollback();
             e.printStackTrace();
             return 0;
         } finally {
-            em.close(); // Đóng tài nguyên an toàn [1]
+            em.close();
         }
     }
 
-    // 2. Kỹ thuật TÌM KIẾM/KIỂM TRA tồn tại bằng JPQL (Truy vấn hướng đối tượng) [1]
+    // 2. Kiểm tra email đã tồn tại chưa
     public static boolean emailExists(String email) {
         EntityManager em = emf.createEntityManager();
-        
-        // Viết câu lệnh dựa trên Class User chứ không viết dựa trên tên bảng dưới SQL [1]
         String qString = "SELECT u FROM User u WHERE u.email = :email";
         TypedQuery<User> q = em.createQuery(qString, User.class);
-        q.setParameter("email", email); // Chống SQL Injection tuyệt đối [1]
-        
+        q.setParameter("email", email);
         try {
-            User user = q.getSingleResult(); // Lấy duy nhất 1 kết quả trả về [1]
+            User user = q.getSingleResult();
             return user != null;
         } catch (jakarta.persistence.NoResultException e) {
-            // JPA sẽ quăng Exception này nếu không tìm thấy dữ liệu phù hợp [1]
-            return false; 
+            return false;
         } finally {
-            em.close(); // Luôn luôn đóng tài nguyên [1]
+            em.close();
         }
     }
-    
-    // Kỹ thuật bổ sung: Lấy toàn bộ thông tin User đầy đủ bằng ID (Hàm find tự động) [1]
+
+    // 3. Lấy User theo email
     public static User selectUser(String email) {
         EntityManager em = emf.createEntityManager();
         try {
-            // Hàm find tự động map đầy đủ cột thành một thực thể User [1]
-            return em.find(User.class, email); 
+            return em.find(User.class, email);
         } finally {
             em.close();
         }

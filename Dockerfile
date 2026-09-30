@@ -4,9 +4,14 @@ WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# Bước 2: Chạy ứng dụng với Java thế hệ mới (Eclipse Temurin)
-FROM eclipse-temurin:17-jre-jammy
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+# Bước 2: Deploy WAR lên Tomcat 10 (tương thích Jakarta EE 10)
+FROM tomcat:10.1-jdk17-temurin
+
+# Xóa app mặc định của Tomcat
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Copy WAR vào thư mục webapps với tên ROOT.war để chạy ở context "/"
+COPY --from=build /app/target/ch13_baitap240926-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/ROOT.war
+
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+CMD ["catalina.sh", "run"]
